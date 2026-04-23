@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Home Care Tracker</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#011D4D;--blue:#034078;--teal:#1282A2;--cream:#E4DFDA;--brown:#63372C;--cream-dk:#beb8b2;--cream-lt:#f5f3ef;--white:#ffffff}
+html,body{height:100%;background:var(--cream-lt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;color:var(--navy);-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+#app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--cream-lt)}
+.screen{flex:1;overflow-y:auto;padding-bottom:80px;-webkit-overflow-scrolling:touch}
+
+/* NAV */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--white);border-top:1px solid var(--cream);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom,0px)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px 8px;border:none;background:none;cursor:pointer;font-size:10px;font-family:inherit;color:var(--cream-dk);transition:color .15s;line-height:1.2;-webkit-tap-highlight-color:transparent}
+.nav-btn.active{color:var(--teal)}
+.nav-btn svg{width:22px;height:22px;stroke-width:1.8;fill:none;stroke:currentColor}
+.nav-dot{width:4px;height:4px;border-radius:50%;background:var(--teal)}
+
+/* HEADERS */
+.sec-hdr{padding:20px 16px 12px;position:sticky;top:0;background:var(--cream-lt);z-index:10;border-bottom:1px solid var(--cream)}
+.sec-title{font-size:22px;font-weight:700;color:var(--navy);letter-spacing:-0.3px}
+.sec-sub{font-size:13px;color:var(--blue);margin-top:3px}
+
+/* PROGRESS BAR */
+.pbar-wrap{height:6px;background:var(--cream);border-radius:4px;overflow:hidden;margin-top:8px}
+.pbar-fill{height:100%;background:var(--teal);border-radius:4px;transition:width .4s}
+.pbar-lbl{font-size:12px;color:var(--blue);margin-top:5px}
+
+/* OVERVIEW STATS */
+.ov-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:14px 12px 0}
+.ov-stat{background:var(--white);border:1px solid var(--cream);border-radius:12px;padding:14px}
+.ov-stat-lbl{font-size:10px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px}
+.ov-stat-val{font-size:26px;font-weight:700;color:var(--navy);line-height:1;letter-spacing:-0.5px}
+.ov-stat-val.teal{color:var(--teal)}
+.ov-stat-sub{font-size:11px;color:var(--cream-dk);margin-top:4px}
+.ov-pbar-wrap{padding:12px 12px 0}
+
+/* CATEGORY CARDS */
+.cat-card{background:var(--white);border:1px solid var(--cream);border-radius:14px;margin:0 12px 10px;overflow:hidden}
+.cat-card-hdr{display:flex;align-items:center;gap:14px;padding:16px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.cat-card-hdr:active{background:#faf9f7}
+.cat-num{font-size:20px;font-weight:700;color:var(--brown);min-width:30px;line-height:1}
+.cat-info{flex:1;min-width:0}
+.cat-title{font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
+.cat-sub{font-size:11px;color:var(--blue);line-height:1.4}
+.cat-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.cat-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;white-space:nowrap}
+.cat-chev{font-size:10px;color:var(--cream-dk);transition:transform .2s;flex-shrink:0}
+.cat-chev.open{transform:rotate(180deg)}
+.cat-body{border-top:1px solid var(--cream);display:none}
+.cat-body.open{display:block}
+.cat-goal{background:var(--cream-lt);border-left:3px solid var(--teal);margin:14px 16px 10px;padding:12px 14px;border-radius:0 8px 8px 0;font-size:12px;color:var(--blue);line-height:1.65}
+.cat-goal strong{color:var(--navy);font-weight:700}
+.cat-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 16px 14px}
+.cat-metric{background:var(--cream-lt);border:1px solid var(--cream);border-radius:10px;padding:11px 12px}
+.cat-metric-lbl{font-size:9px;font-weight:700;color:var(--cream-dk);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.cat-metric-val{font-size:15px;font-weight:700;color:var(--teal);line-height:1.2}
+.cat-tasks-wrap{padding:0 16px 16px}
+.cat-tasks-lbl{font-size:10px;font-weight:700;color:var(--cream-dk);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+.cat-task-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--cream);font-size:13px;color:var(--navy)}
+.cat-task-row:last-child{border-bottom:none}
+.cat-task-dot{width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0}
+
+/* CARDS */
+.card{background:var(--white);border-radius:14px;border:1px solid var(--cream);margin:0 12px 10px;overflow:hidden}
+.card-hdr{padding:14px 16px 12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;-webkit-tap-highlight-color:transparent}
+.card-hdr:active{background:#faf9f7}
+.card-title{font-size:14px;font-weight:700;color:var(--navy)}
+.card-sub{font-size:11px;color:var(--blue);margin-top:2px}
+.chev{width:16px;height:16px;stroke:var(--cream-dk);stroke-width:2.2;fill:none;transition:transform .2s;flex-shrink:0;margin-left:10px;display:block}
+.chev.open{transform:rotate(180deg)}
+
+/* TASK ROWS */
+.task-row{display:flex;align-items:flex-start;gap:12px;padding:11px 16px;border-top:1px solid var(--cream);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.task-row:active{background:#faf9f7}
+.chk{width:21px;height:21px;border-radius:6px;border:1.5px solid var(--cream-dk);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .18s}
+.chk.done{background:var(--teal);border-color:var(--teal)}
+.chk svg{width:11px;height:11px;stroke:#fff;stroke-width:2.5;fill:none;opacity:0;transition:opacity .15s}
+.chk.done svg{opacity:1}
+.t-info{flex:1;min-width:0}
+.t-name{font-size:13px;color:var(--navy);line-height:1.45;font-weight:500}
+.t-name.done{color:var(--cream-dk);text-decoration:line-through;font-weight:400}
+.t-note{font-size:11px;color:var(--blue);margin-top:3px;line-height:1.45}
+.pill-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.pill{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600}
+.freq-pill{display:inline-block;font-size:9px;padding:2px 7px;border-radius:10px;background:#e4eff5;color:var(--blue);font-weight:600;border:1px solid #c8dde8}
+
+/* DAY STRIP */
+.day-strip{display:flex;gap:6px;padding:12px 12px 4px;overflow-x:auto;scrollbar-width:none}
+.day-strip::-webkit-scrollbar{display:none}
+.day-pill{flex-shrink:0;width:46px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:10px;border:1px solid var(--cream);cursor:pointer;background:var(--white);-webkit-tap-highlight-color:transparent}
+.day-pill.today{border-color:var(--teal);background:#e4f2f7}
+.day-pill.selected{border-color:var(--navy);box-shadow:0 0 0 1.5px var(--navy)}
+.day-pill-n{font-size:10px;color:var(--blue)}
+.day-pill-p{font-size:12px;font-weight:700;color:var(--navy)}
+.day-pill.complete .day-pill-p{color:var(--teal)}
+
+/* STAT GRID */
+.stat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px}
+.stat-c{background:var(--white);border-radius:12px;padding:14px;border:1px solid var(--cream)}
+.stat-lbl{font-size:11px;color:var(--blue);margin-bottom:4px;font-weight:500}
+.stat-v{font-size:24px;font-weight:700;letter-spacing:-0.5px}
+
+/* MISC */
+.sched-hdr{padding:14px 12px 4px;font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.07em}
+.sub-hdr{font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
+
+/* AIRTABLE PANEL */
+.at-panel{margin:0 12px 10px;background:var(--white);border:1px solid var(--cream);border-radius:14px;overflow:hidden}
+.at-panel-hdr{padding:14px 16px;border-bottom:1px solid var(--cream)}
+.at-panel-title{font-size:14px;font-weight:700;color:var(--navy)}
+.at-panel-sub{font-size:11px;color:var(--blue);margin-top:2px}
+.at-field-row{padding:12px 16px;border-bottom:1px solid var(--cream)}
+.at-field-lbl{font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.at-input{width:100%;padding:9px 12px;border:1.5px solid var(--cream);border-radius:8px;font-size:12px;font-family:inherit;color:var(--navy);background:var(--cream-lt);outline:none;transition:border-color .15s}
+.at-input:focus{border-color:var(--teal)}
+.at-input::placeholder{color:var(--cream-dk)}
+.at-btn-row{padding:14px 16px;display:flex;gap:10px;border-bottom:1px solid var(--cream)}
+.at-btn{flex:1;padding:11px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:opacity .15s;-webkit-tap-highlight-color:transparent}
+.at-btn:active{opacity:.75}
+.at-btn.primary{background:var(--navy);color:#fff}
+.at-btn.secondary{background:var(--cream);color:var(--navy)}
+.at-status{padding:10px 16px 4px;font-size:12px;line-height:1.6;min-height:16px}
+.at-status.ok{color:#0F6E56}
+.at-status.err{color:#993C1D}
+.at-status.busy{color:var(--blue)}
+.at-last{padding:0 16px 14px;font-size:11px;color:var(--cream-dk)}
+.at-steps{padding:0 16px 16px}
+.at-step{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--cream);align-items:flex-start}
+.at-step:last-child{border-bottom:none}
+.at-step-num{width:20px;height:20px;border-radius:50%;background:var(--teal);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.at-step-txt{font-size:12px;color:var(--blue);line-height:1.6;flex:1}
+.at-step-txt strong{color:var(--navy)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="screen" class="screen"></div>
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+</div>
+<script>
+var NAVY='#011D4D',BLUE='#034078',TEAL='#1282A2',CREAM='#E4DFDA',BROWN='#63372C';
+
+var CAT_STYLE={
+  morning:{bg:'#e4f2f7',tx:BLUE},evening:{bg:'#e8edf8',tx:NAVY},
+  kitchen:{bg:'#e4f2f7',tx:TEAL},bathroom:{bg:'#f0eae8',tx:BROWN},
+  laundry:{bg:'#e8edf8',tx:BLUE},general:{bg:'#f2efeb',tx:NAVY},
+  cooking:{bg:'#f5ede8',tx:BROWN},outdoor:{bg:'#e4f2f7',tx:BLUE},
+  organise:{bg:'#e8edf8',tx:NAVY},maintenance:{bg:'#e4f2f7',tx:TEAL}
+};
+var CL={morning:'Morning',evening:'Evening',kitchen:'Kitchen',bathroom:'Bathroom',laundry:'Laundry',general:'General',cooking:'Cooking',outdoor:'Outdoor',organise:'Organise',maintenance:'Maintenance'};
+
+// ── DATA ──────────────────────────────────────────────────────────────────────
+var DAILY=[
+  {id:'morning',label:'Morning routine',time:'On waking',tasks:[
+    {id:'d_bed',name:'Make the bed immediately on waking',note:'Anchor: the moment your feet hit the floor — instant win that sets the tone',cat:'morning'}
+  ]},
+  {id:'evening',label:'Evening closing shift',time:'Before bed',tasks:[
+    {id:'d_kitchen',name:'Closing shift',note:'Wipe benches & stovetop, wash & put away dishes, wipe down sink & surfaces — reset the kitchen like a restaurant',cat:'kitchen'},
+    {id:'d_living',name:'Tidy & reset living areas',note:'Cushions, remotes, loose items — takes under 5 minutes',cat:'general'},
+    {id:'d_lap',name:'Quick lap to return items to their home',note:'Shoes, bags, mail, clothes — nothing lives on the floor overnight',cat:'evening'},
+    {id:'d_prep',name:'Prepare for tomorrow',note:'Lay out clothes, pack bag, check schedule — reduces morning friction significantly',cat:'evening'},
+    {id:'d_bedroom',name:'Tidy bedroom before sleep',note:'Clear surfaces, clothes away — wake up to calm, not chaos',cat:'evening'}
+  ]}
+];
+
+var WEEKLY=[
+  {day:'Monday',tasks:[
+    {id:'w_vac_full',name:'Full vacuum — all rooms',note:'Corners, skirting boards, under furniture',cat:'general'},
+    {id:'w_vac_deep',name:'Deep vacuum — stairs, vents & hard spots',note:'Under beds, behind furniture',cat:'general'},
+    {id:'w_mop',name:'Mop all hard floors',note:'After vacuuming',cat:'general'},
+    {id:'w_caddies',name:'Empty & refill cleaning caddies',note:'Restock sprays, cloths, gloves',cat:'organise'},
+    {id:'w_upholstery',name:'Vacuum upholstery & cushions',note:'Sofas, armchairs, ottomans',cat:'general'}
+  ]},
+  {day:'Tuesday',tasks:[
+    {id:'w_wash1',name:'Run a load of washing',note:'Check pockets before loading',cat:'laundry'},
+    {id:'w_linen',name:'Wash & change bed linen',note:'All beds in the house',cat:'laundry'}
+  ]},
+  {day:'Wednesday',tasks:[
+    {id:'w_appliances',name:'Clean kitchen appliances',note:'Microwave, kettle, toaster inside & out',cat:'kitchen'},
+    {id:'w_cupboards',name:'Wipe down kitchen cupboard fronts',note:'Especially around handles',cat:'kitchen'},
+    {id:'w_papers',name:'Sort & file papers / mail',note:'Bin junk mail, file important docs',cat:'organise'},
+    {id:'w_mealprep1',name:'Meal prep',note:'Batch cook, prep veg, plan coming days',cat:'cooking'},
+    {id:'w_folding1',name:'Fold & put away all clean laundry',note:'Clear the pile completely',cat:'laundry'}
+  ]},
+  {day:'Thursday',tasks:[
+    {id:'w_bathroom',name:'Deep clean bathroom',note:'Toilet, shower, bath, floor & mirrors',cat:'bathroom'},
+    {id:'w_glass',name:'Clean glass & mirrors',note:'Windows, shower screen, all mirrors',cat:'general'},
+    {id:'w_pantry',name:'Sort pantry & fridge',note:'Check use-by dates, wipe shelves',cat:'kitchen'}
+  ]},
+  {day:'Friday',tasks:[
+    {id:'w_wash2',name:'Run a load of washing',note:'Check pockets before loading',cat:'laundry'},
+    {id:'w_towels',name:'Wash bathroom towels & bath mats',note:'Hang fresh towels when dry',cat:'laundry'},
+    {id:'w_entry',name:'Tidy entryway & garage entrance',note:'Shoes, bags, coats & clutter',cat:'organise'},
+    {id:'w_car',name:'Clean out car interior',note:'Vacuum, wipe dash & door pockets',cat:'general'}
+  ]},
+  {day:'Saturday',tasks:[
+    {id:'w_mealprep2',name:'Meal prep for the week ahead',note:'Batch cook, prep veg, portion containers',cat:'cooking'},
+    {id:'w_folding2',name:'Fold & put away all clean laundry',note:'Clear the pile completely',cat:'laundry'},
+    {id:'w_sweep',name:'Sweep backyard & outdoor areas',note:'Paths, patio, decking',cat:'outdoor'},
+    {id:'w_garden',name:'Weeding & garden tidy-up',note:'Pull weeds, deadhead plants, rake',cat:'outdoor'},
+    {id:'w_skirting',name:'Wipe skirting boards & light switches',note:'Slightly damp cloth',cat:'general'}
+  ]},
+  {day:'Sunday',tasks:[
+    {id:'w_bins',name:'Empty & wipe all bins, take out rubbish',note:'Reline all bins with fresh bags',cat:'general'},
+    {id:'w_declutter',name:'Declutter & donate unwanted items',note:'Clothes, books, household items',cat:'organise'},
+    {id:'w_review',name:'Review & set up the week ahead',note:'Meal plan, shopping list, schedule',cat:'organise'}
+  ]}
+];
+
+var MAINT=[
+  {id:'dishwasher',name:'Dishwasher',freq:'Monthly + as needed',sched:'Week 1 of month',tasks:[
+    {id:'ma_0',name:'Clean filter under lower basket',freq:'Monthly'},
+    {id:'ma_1',name:'Run empty cycle with dishwasher cleaner',freq:'Monthly'},
+    {id:'ma_2',name:'Wipe door seal & edges',freq:'Fortnightly'},
+    {id:'ma_3',name:'Check & refill rinse aid and salt',freq:'As needed'}
+  ]},
+  {id:'washer',name:'Washing machine',freq:'Monthly + as needed',sched:'Week 2 of month',tasks:[
+    {id:'mb_0',name:'Run empty hot cycle with machine cleaner',freq:'Monthly'},
+    {id:'mb_1',name:'Clean rubber door seal',freq:'Fortnightly'},
+    {id:'mb_2',name:'Clean detergent drawer',freq:'Monthly'},
+    {id:'mb_3',name:'Leave door ajar after use to dry drum',freq:'Ongoing'}
+  ]},
+  {id:'dryer',name:'Dryer',freq:'After every use + quarterly',sched:'Week 3 of month',tasks:[
+    {id:'mc_0',name:'Clean lint filter',freq:'After every use'},
+    {id:'mc_1',name:'Wipe drum interior',freq:'Monthly'},
+    {id:'mc_2',name:'Check & clean exhaust vent hose',freq:'Quarterly'},
+    {id:'mc_3',name:'Vacuum behind & underneath unit',freq:'Quarterly'}
+  ]},
+  {id:'oven',name:'Oven',freq:'Monthly deep clean',sched:'Week 4 of month',tasks:[
+    {id:'md_0',name:'Wipe spills after each use',freq:'Ongoing habit'},
+    {id:'md_1',name:'Remove & soak oven racks',freq:'Monthly'},
+    {id:'md_2',name:'Deep clean oven interior with cleaner',freq:'Monthly'},
+    {id:'md_3',name:'Clean oven door glass inside & out',freq:'Monthly'}
+  ]},
+  {id:'lights',name:'Lights & ceiling fans',freq:'Quarterly',sched:'Week 1 (quarterly)',tasks:[
+    {id:'me_0',name:'Replace any blown globes',freq:'As needed'},
+    {id:'me_1',name:'Dust light fittings & lampshades',freq:'Monthly'},
+    {id:'me_2',name:'Wipe down ceiling fans',freq:'Monthly'},
+    {id:'me_3',name:'Check outdoor lights are working',freq:'Quarterly'}
+  ]},
+  {id:'windows',name:'Windows',freq:'Quarterly full clean',sched:'Week 2 (quarterly)',tasks:[
+    {id:'mf_0',name:'Wipe interior glass with glass cleaner',freq:'Monthly'},
+    {id:'mf_1',name:'Clean window tracks & frames',freq:'Quarterly'},
+    {id:'mf_2',name:'Wash exterior glass',freq:'Quarterly'},
+    {id:'mf_3',name:'Check & clean fly screens',freq:'Bi-annually'}
+  ]},
+  {id:'outdoor',name:'Outdoor & garden',freq:'Monthly + seasonal',sched:'Week 3 of month',tasks:[
+    {id:'mg_0',name:'Mow lawn & edge garden beds',freq:'Fortnightly'},
+    {id:'mg_1',name:'Trim hedges & shrubs',freq:'Monthly'},
+    {id:'mg_2',name:'Clean outdoor furniture & cushions',freq:'Monthly'},
+    {id:'mg_3',name:'Clear gutters & downpipes',freq:'Bi-annually'}
+  ]},
+  {id:'exterior',name:'House exterior',freq:'Quarterly + seasonal',sched:'Week 4 of month',tasks:[
+    {id:'mh_0',name:'Pressure wash paths, driveway & patio',freq:'Quarterly'},
+    {id:'mh_1',name:'Wipe down exterior doors & handles',freq:'Monthly'},
+    {id:'mh_2',name:'Check roof, gutters & fascia boards',freq:'Bi-annually'},
+    {id:'mh_3',name:'Clean outdoor vents & air con filters',freq:'Quarterly'}
+  ]}
+];
+
+var DOW=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+var CATEGORIES=[
+  {num:'01',title:'Daily Habits',sub:'Morning anchor \u00b7 Evening closing shift',badge:'Daily',badgeBg:'#A8D4E0',badgeTx:NAVY,
+   goal:'These are the non-negotiables that prevent your home from decaying day to day. The morning bed-make sets the tone for the entire day \u2014 it is a keystone habit that signals order. The evening closing shift resets the home like a restaurant close, so you wake to calm rather than chaos.',
+   metrics:[{l:'Daily tasks',v:'6'},{l:'Morning',v:'1 task'},{l:'Evening',v:'5 tasks'},{l:'Est. time',v:'15\u201320 min'}],
+   tasks:function(){var r=[];for(var i=0;i<DAILY.length;i++)for(var j=0;j<DAILY[i].tasks.length;j++)r.push(DAILY[i].tasks[j]);return r;}},
+  {num:'02',title:'Cleaning',sub:'Vacuum \u00b7 Mop \u00b7 Bathroom \u00b7 Windows',badge:'Weekly',badgeBg:'#D6EEF3',badgeTx:NAVY,
+   goal:'A structured weekly cleaning rhythm prevents the build-up of dirt, dust, bacteria and clutter. Each day targets a specific area so no single session feels overwhelming. Monday is the big clean day \u2014 vacuuming, mopping and upholstery \u2014 while Thursday handles the bathroom and glass work.',
+   metrics:[{l:'Weekly tasks',v:'9'},{l:'Key day',v:'Monday'},{l:'Bathroom',v:'Thursday'},{l:'Est. time',v:'2\u20133 hrs/wk'}],
+   tasks:function(){var r=[];for(var i=0;i<WEEKLY.length;i++)for(var j=0;j<WEEKLY[i].tasks.length;j++){var t=WEEKLY[i].tasks[j];if(t.cat==='general'||t.cat==='bathroom')r.push(t);}return r;}},
+  {num:'03',title:'Kitchen',sub:'Appliances \u00b7 Benches \u00b7 Pantry \u00b7 Fridge',badge:'Weekly',badgeBg:'#D6EEF3',badgeTx:NAVY,
+   goal:'The kitchen is the heart of the home and the highest-traffic area for bacteria and grease build-up. Daily bench wipes in the evening closing shift maintain hygiene, while Wednesday appliance cleaning and Thursday pantry sorts keep the space functional, safe and ready for cooking.',
+   metrics:[{l:'Weekly tasks',v:'3'},{l:'Key day',v:'Wednesday'},{l:'Pantry & fridge',v:'Thursday'},{l:'Est. time',v:'30\u201345 min/wk'}],
+   tasks:function(){var r=[];for(var i=0;i<WEEKLY.length;i++)for(var j=0;j<WEEKLY[i].tasks.length;j++){var t=WEEKLY[i].tasks[j];if(t.cat==='kitchen')r.push(t);}return r;}},
+  {num:'04',title:'Laundry',sub:'Washing \u00b7 Linen \u00b7 Towels \u00b7 Folding',badge:'Weekly',badgeBg:'#F0EDEA',badgeTx:BLUE,
+   goal:'Laundry spread across the week avoids the dreaded weekend pile. Tuesday covers bed linen \u2014 fresh sheets improve sleep quality. Friday handles towels and a second wash load. Wednesday and Saturday folding ensures clean clothes are put away and never live in a pile.',
+   metrics:[{l:'Wash days',v:'Tue & Fri'},{l:'Linen change',v:'Tuesday'},{l:'Towels',v:'Friday'},{l:'Folding',v:'Wed & Sat'}],
+   tasks:function(){var r=[];for(var i=0;i<WEEKLY.length;i++)for(var j=0;j<WEEKLY[i].tasks.length;j++){var t=WEEKLY[i].tasks[j];if(t.cat==='laundry')r.push(t);}return r;}},
+  {num:'05',title:'Organise',sub:'Papers \u00b7 Entryway \u00b7 Declutter \u00b7 Weekly review',badge:'Weekly',badgeBg:'#F0EDEA',badgeTx:BLUE,
+   goal:"A tidy home requires not just cleaning but intentional organisation. Wednesday's paper sort prevents admin pile-up. Friday's entryway reset keeps the first impression sharp. Sunday's declutter and weekly review set the tone for the entire week ahead.",
+   metrics:[{l:'Tasks',v:'4'},{l:'Papers',v:'Wednesday'},{l:'Declutter',v:'Sunday'},{l:'Weekly review',v:'Sunday'}],
+   tasks:function(){var r=[];for(var i=0;i<WEEKLY.length;i++)for(var j=0;j<WEEKLY[i].tasks.length;j++){var t=WEEKLY[i].tasks[j];if(t.cat==='organise')r.push(t);}return r;}},
+  {num:'06',title:'Cooking & Nutrition',sub:'Meal prep \u00b7 Batch cooking \u00b7 Weekly planning',badge:'Weekly',badgeBg:'#D6EEF3',badgeTx:NAVY,
+   goal:"Meal prep is one of the highest-ROI habits in the home. Preparing food in advance reduces decision fatigue, saves money, and eliminates the 6pm panic. Wednesday prep handles the mid-week crunch; Saturday prep sets up the entire week ahead.",
+   metrics:[{l:'Prep sessions',v:'2/week'},{l:'Mid-week',v:'Wednesday'},{l:'Week ahead',v:'Saturday'},{l:'Est. time',v:'2\u20133 hrs'}],
+   tasks:function(){var r=[];for(var i=0;i<WEEKLY.length;i++)for(var j=0;j<WEEKLY[i].tasks.length;j++){var t=WEEKLY[i].tasks[j];if(t.cat==='cooking')r.push(t);}return r;}},
+  {num:'07',title:'Outdoor & Garden',sub:'Lawn \u00b7 Garden beds \u00b7 Paths \u00b7 Outdoor areas',badge:'Saturday',badgeBg:'#C8C2BB',badgeTx:NAVY,
+   goal:'Outdoor spaces are an extension of the home and the first thing visitors see. Regular Saturday maintenance \u2014 sweeping, weeding and garden tidying \u2014 prevents the garden from becoming overwhelming. Consistent small efforts are far easier than periodic large restoration jobs.',
+   metrics:[{l:'Tasks',v:'2'},{l:'Scheduled',v:'Saturday'},{l:'Garden',v:'Weekly'},{l:'Est. time',v:'45\u201360 min'}],
+   tasks:function(){var r=[];for(var i=0;i<WEEKLY.length;i++)for(var j=0;j<WEEKLY[i].tasks.length;j++){var t=WEEKLY[i].tasks[j];if(t.cat==='outdoor')r.push(t);}return r;}},
+  {num:'08',title:'Maintenance',sub:'Appliances \u00b7 Windows \u00b7 Exterior \u00b7 Garden',badge:'Monthly',badgeBg:'#A8D4E0',badgeTx:NAVY,
+   goal:'Appliance and home maintenance prevents small issues becoming expensive repairs. Each Saturday is assigned a specific maintenance focus \u2014 rotating through 8 appliance and home systems over the month.',
+   metrics:[{l:'Appliances',v:'8'},{l:'Scheduled',v:'Saturdays'},{l:'Monthly items',v:'6'},{l:'Quarterly',v:'2'}],
+   tasks:function(){var r=[];for(var i=0;i<MAINT.length;i++)for(var j=0;j<MAINT[i].tasks.length;j++){var t=MAINT[i].tasks[j];r.push({id:t.id,name:t.name,note:MAINT[i].name+' \u00b7 '+t.freq,cat:'maintenance'});}return r;}}
+];
+
+// ── STORAGE ───────────────────────────────────────────────────────────────────
+function sGet(k){try{return localStorage.getItem('hct_'+k)||'';}catch(e){return '';}}
+function sSet(k,v){try{localStorage.setItem('hct_'+k,v);}catch(e){}}
+function sToggle(k){sSet(k,sGet(k)==='1'?'0':'1');}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function dateKey(d){var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+dd;}
+function now(){return new Date();}
+function todayKey(){return dateKey(now());}
+function allDaily(){var r=[];for(var i=0;i<DAILY.length;i++)for(var j=0;j<DAILY[i].tasks.length;j++)r.push(DAILY[i].tasks[j]);return r;}
+function allWeekly(){var r=[];for(var i=0;i<WEEKLY.length;i++)for(var j=0;j<WEEKLY[i].tasks.length;j++)r.push(WEEKLY[i].tasks[j]);return r;}
+function allMaint(){var r=[];for(var i=0;i<MAINT.length;i++)for(var j=0;j<MAINT[i].tasks.length;j++)r.push(MAINT[i].tasks[j]);return r;}
+function countDone(tasks,prefix){var n=0;for(var i=0;i<tasks.length;i++)if(sGet(prefix+tasks[i].id)==='1')n++;return n;}
+function pct(done,total){return total?Math.round(done/total*100):0;}
+function avgPct(days){var all=allDaily(),total=0;for(var i=0;i<days;i++){var d=new Date();d.setDate(d.getDate()-i);total+=pct(countDone(all,'day_'+dateKey(d)+'_'),all.length);}return Math.round(total/days);}
+function calcStreak(){var all=allDaily(),s=0;for(var i=0;i<365;i++){var d=new Date();d.setDate(d.getDate()-i);var done=countDone(all,'day_'+dateKey(d)+'_');if(all.length&&done/all.length>=0.5)s++;else break;}return s;}
+
+// Returns the ISO week key for a given date: YYYY-Www (e.g. 2026-W17)
+function weekKey(d){
+  var tmp=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  tmp.setDate(tmp.getDate()-((tmp.getDay()+6)%7)); // set to Monday
+  var y=tmp.getFullYear(),m=String(tmp.getMonth()+1).padStart(2,'0'),dd=String(tmp.getDate()).padStart(2,'0');
+  return y+'-W'+m+dd;
+}
+
+// Returns month key: YYYY-MM
+function monthKey(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+
+// ── AUTO-RESET: WEEKLY TASKS every Monday ────────────────────────────────────
+// Stores which week tasks were last reset. If it's a new week, clears all weekly keys.
+function checkWeeklyReset(){
+  var thisWeek=weekKey(now());
+  var lastWeek=sGet('weekly_reset_week');
+  if(lastWeek!==thisWeek){
+    var all=allWeekly();
+    for(var i=0;i<all.length;i++) sSet('week_'+all[i].id,'0');
+    sSet('weekly_reset_week',thisWeek);
+    console.log('Weekly tasks reset for week',thisWeek);
+  }
+}
+
+// ── AUTO-RESET: MAINTENANCE TASKS every 1st of month ─────────────────────────
+function checkMaintReset(){
+  var thisMonth=monthKey(now());
+  var lastMonth=sGet('maint_reset_month');
+  if(lastMonth!==thisMonth){
+    var all=allMaint();
+    for(var i=0;i<all.length;i++) sSet('maint_'+all[i].id,'0');
+    sSet('maint_reset_month',thisMonth);
+    console.log('Maintenance tasks reset for month',thisMonth);
+  }
+}
+
+// ── HTML PARTS ────────────────────────────────────────────────────────────────
+function svgTick(){return '<svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5"><polyline points="1,6 4.5,9.5 11,2.5"/></svg>';}
+function svgChev(open){return '<svg class="chev'+(open?' open':'')+'" viewBox="0 0 16 16" fill="none" stroke="#beb8b2" stroke-width="2.2" stroke-linecap="round"><polyline points="3,6 8,11 13,6"/></svg>';}
+function pillH(cat){var s=CAT_STYLE[cat]||{bg:CREAM,tx:NAVY};return '<span class="pill" style="background:'+s.bg+';color:'+s.tx+'">'+(CL[cat]||cat)+'</span>';}
+function pbarH(p,lbl){return '<div class="pbar-wrap"><div class="pbar-fill" style="width:'+p+'%"></div></div>'+(lbl?'<div class="pbar-lbl">'+lbl+'</div>':'');}
+
+function taskH(task,storeKey,freqLabel){
+  var done=sGet(storeKey)==='1';
+  return '<div class="task-row" data-key="'+storeKey+'">'
+    +'<div class="chk'+(done?' done':'')+'">'+svgTick()+'</div>'
+    +'<div class="t-info"><div class="t-name'+(done?' done':'')+'">'+task.name+'</div>'
+    +(task.note?'<div class="t-note">'+task.note+'</div>':'')
+    +'<div class="pill-row">'+pillH(task.cat||'maintenance')+(freqLabel?'<span class="freq-pill">'+freqLabel+'</span>':'')+'</div>'
+    +'</div></div>';
+}
+
+function cardH(id,title,sub,tasks,prefix,freqs,open){
+  var done=countDone(tasks,prefix),p=pct(done,tasks.length),rows='';
+  for(var i=0;i<tasks.length;i++)rows+=taskH(tasks[i],prefix+tasks[i].id,freqs?freqs[i]:null);
+  return '<div class="card"><div class="card-hdr" data-card="'+id+'">'
+    +'<div style="flex:1"><div class="card-title">'+title+'</div>'
+    +'<div class="card-sub">'+sub+' &middot; '+done+'/'+tasks.length+' done</div>'
+    +pbarH(p,'')+'</div>'+svgChev(open)+'</div>'
+    +'<div id="cb-'+id+'" style="display:'+(open?'block':'none')+'">'+rows+'</div></div>';
+}
+
+// ── AIRTABLE SYNC ─────────────────────────────────────────────────────────────
+function atApiKey(){return sGet('at_api_key');}
+function atBaseId(){return sGet('at_base_id');}
+
+function setAtStatus(type,msg){
+  var el=document.getElementById('at-status');
+  if(el){el.className='at-status '+type;el.textContent=msg;}
+}
+
+function saveAtCreds(){
+  var key=document.getElementById('at-api-key');
+  var base=document.getElementById('at-base-id');
+  if(key) sSet('at_api_key',key.value.trim());
+  if(base) sSet('at_base_id',base.value.trim());
+  setAtStatus('ok','\u2713 Credentials saved.');
+}
+
+function atHdrs(){
+  return {'Authorization':'Bearer '+atApiKey(),'Content-Type':'application/json'};
+}
+
+// Check if table exists and create it if not
+async function atEnsureTable(name, fields){
+  var metaUrl='https://api.airtable.com/v0/meta/bases/'+atBaseId()+'/tables';
+  var res=await fetch(metaUrl,{headers:atHdrs()});
+  if(!res.ok){
+    var txt=await res.text();
+    throw new Error('Cannot read base schema ('+res.status+'). Check your token has schema.bases:read scope and the Base ID is correct. Detail: '+txt);
+  }
+  var data=await res.json();
+  var exists=data.tables&&data.tables.some(function(t){return t.name===name;});
+  if(!exists){
+    var cr=await fetch(metaUrl,{method:'POST',headers:atHdrs(),body:JSON.stringify({name:name,fields:fields})});
+    if(!cr.ok){var e=await cr.text();throw new Error('Cannot create table "'+name+'" ('+cr.status+'): '+e);}
+    await new Promise(function(r){setTimeout(r,1500);});
+  }
+}
+
+async function atUpsert(tableName,uniqueField,uniqueVal,fields){
+  var url='https://api.airtable.com/v0/'+atBaseId()+'/'+encodeURIComponent(tableName);
+  var searchUrl=url+'?filterByFormula='+encodeURIComponent('{'+uniqueField+'}="'+uniqueVal+'"')+'&maxRecords=1';
+  var res=await fetch(searchUrl,{headers:atHdrs()});
+  if(!res.ok)throw new Error('Search failed ('+res.status+')');
+  var data=await res.json();
+  if(data.records&&data.records.length>0){
+    var patch=await fetch(url+'/'+data.records[0].id,{method:'PATCH',headers:atHdrs(),body:JSON.stringify({fields:fields})});
+    if(!patch.ok)throw new Error('Update failed ('+patch.status+')');
+  } else {
+    var post=await fetch(url,{method:'POST',headers:atHdrs(),body:JSON.stringify({fields:fields})});
+    if(!post.ok){var e=await post.text();throw new Error('Create record failed ('+post.status+'): '+e);}
+  }
+}
+
+async function atBatch(tableName,uniqueField,rows){
+  for(var i=0;i<rows.length;i++){
+    await atUpsert(tableName,uniqueField,rows[i][uniqueField],rows[i]);
+    if(i%4===3)await new Promise(function(r){setTimeout(r,250);});
+  }
+}
+
+async function doAtSync(){
+  if(!atApiKey()||!atBaseId()){
+    setAtStatus('err','Please enter your API key and Base ID, then tap Save credentials.');
+    return;
+  }
+  try {
+    var allD=allDaily(),allW=allWeekly(),allM=allMaint();
+    var tk=todayKey(),ts=new Date().toLocaleString('en-AU');
+
+    // Ensure tables exist first
+    setAtStatus('busy','Checking Airtable tables\u2026');
+    await atEnsureTable('Daily Log',[
+      {name:'Date + Task',type:'singleLineText'},
+      {name:'Date',type:'singleLineText'},
+      {name:'Task ID',type:'singleLineText'},
+      {name:'Task Name',type:'singleLineText'},
+      {name:'Category',type:'singleLineText'},
+      {name:'Done',type:'checkbox',options:{icon:'check',color:'greenBright'}},
+      {name:'Synced At',type:'singleLineText'}
+    ]);
+    await atEnsureTable('Weekly Tasks',[
+      {name:'Week + Task',type:'singleLineText'},
+      {name:'Week',type:'singleLineText'},
+      {name:'Task ID',type:'singleLineText'},
+      {name:'Day',type:'singleLineText'},
+      {name:'Task Name',type:'singleLineText'},
+      {name:'Category',type:'singleLineText'},
+      {name:'Done',type:'checkbox',options:{icon:'check',color:'greenBright'}},
+      {name:'Synced At',type:'singleLineText'}
+    ]);
+    await atEnsureTable('Maintenance',[
+      {name:'Month + Task',type:'singleLineText'},
+      {name:'Month',type:'singleLineText'},
+      {name:'Task ID',type:'singleLineText'},
+      {name:'Appliance',type:'singleLineText'},
+      {name:'Task Name',type:'singleLineText'},
+      {name:'Frequency',type:'singleLineText'},
+      {name:'Done',type:'checkbox',options:{icon:'check',color:'greenBright'}},
+      {name:'Synced At',type:'singleLineText'}
+    ]);
+
+    // Sync daily tasks (today only)
+    setAtStatus('busy','Syncing daily tasks (1/3)\u2026');
+    var dailyRows=[];
+    for(var j=0;j<allD.length;j++){
+      var t=allD[j];
+      dailyRows.push({'Date + Task':tk+'|'+t.id,'Date':tk,'Task ID':t.id,'Task Name':t.name,'Category':CL[t.cat]||t.cat,'Done':sGet('day_'+tk+'_'+t.id)==='1','Synced At':ts});
+    }
+    await atBatch('Daily Log','Date + Task',dailyRows);
+
+    // Sync weekly tasks — stamped with week key for history
+    setAtStatus('busy','Syncing weekly tasks (2/3)\u2026');
+    var wk=weekKey(now());
+    var weeklyRows=[];
+    for(var i=0;i<WEEKLY.length;i++)for(var j=0;j<WEEKLY[i].tasks.length;j++){
+      var t=WEEKLY[i].tasks[j];
+      weeklyRows.push({'Week + Task':wk+'|'+t.id,'Week':wk,'Task ID':t.id,'Day':WEEKLY[i].day,'Task Name':t.name,'Category':CL[t.cat]||t.cat,'Done':sGet('week_'+t.id)==='1','Synced At':ts});
+    }
+    await atBatch('Weekly Tasks','Week + Task',weeklyRows);
+
+    // Sync maintenance — stamped with month key for history
+    setAtStatus('busy','Syncing maintenance (3/3)\u2026');
+    var mk=monthKey(now());
+    var maintRows=[];
+    for(var i=0;i<MAINT.length;i++)for(var j=0;j<MAINT[i].tasks.length;j++){
+      var t=MAINT[i].tasks[j];
+      maintRows.push({'Month + Task':mk+'|'+t.id,'Month':mk,'Task ID':t.id,'Appliance':MAINT[i].name,'Task Name':t.name,'Frequency':t.freq,'Done':sGet('maint_'+t.id)==='1','Synced At':ts});
+    }
+    await atBatch('Maintenance','Month + Task',maintRows);
+
+    sSet('at_last_sync',ts);
+    var total=dailyRows.length+weeklyRows.length+maintRows.length;
+    setAtStatus('ok','\u2713 Synced '+total+' records at '+ts);
+    var lastEl=document.getElementById('at-last');
+    if(lastEl)lastEl.textContent='Last synced: '+ts;
+  } catch(err){
+    setAtStatus('err','Sync failed: '+err.message);
+  }
+}
+
+
+// ── SCREENS ───────────────────────────────────────────────────────────────────
+function screenDash(){
+  var allD=allDaily(),tk=todayKey();
+  var dDone=countDone(allD,'day_'+tk+'_'),dP=pct(dDone,allD.length);
+  var streak=calcStreak(),wAvg=avgPct(7),mAvg=avgPct(30);
+  var todayName=DOW[now().getDay()];
+  var catCards='';
+  for(var i=0;i<CATEGORIES.length;i++){
+    var c=CATEGORIES[i],tasks=c.tasks(),metricsH='',tasksH='';
+    for(var m=0;m<c.metrics.length;m++)metricsH+='<div class="cat-metric"><div class="cat-metric-lbl">'+c.metrics[m].l+'</div><div class="cat-metric-val">'+c.metrics[m].v+'</div></div>';
+    for(var t=0;t<tasks.length;t++)tasksH+='<div class="cat-task-row"><div class="cat-task-dot"></div>'+tasks[t].name+'</div>';
+    catCards+='<div class="cat-card"><div class="cat-card-hdr" data-cat="'+i+'">'
+      +'<div class="cat-num">'+c.num+'</div>'
+      +'<div class="cat-info"><div class="cat-title">'+c.title+'</div><div class="cat-sub">'+c.sub+'</div></div>'
+      +'<div class="cat-right"><span class="cat-badge" style="background:'+c.badgeBg+';color:'+c.badgeTx+'">'+c.badge+'</span>'
+      +'<span class="cat-chev" id="cchev-'+i+'">\u25bc</span></div></div>'
+      +'<div class="cat-body" id="catbody-'+i+'">'
+      +'<div class="cat-goal"><strong>Goal:</strong> '+c.goal+'</div>'
+      +'<div class="cat-metrics">'+metricsH+'</div>'
+      +(tasks.length?'<div class="cat-tasks-wrap"><div class="cat-tasks-lbl">Tasks in this category</div>'+tasksH+'</div>':'')
+      +'</div></div>';
+  }
+  var todayW=null;for(var i=0;i<WEEKLY.length;i++)if(WEEKLY[i].day===todayName){todayW=WEEKLY[i];break;}
+  var todayCard='';
+  if(todayW){
+    todayCard='<div class="sched-hdr">Scheduled for '+todayName+'</div>'+cardH('dash-today',todayName,'Weekly tasks',todayW.tasks,'week_',null,true);
+  }
+  return '<div class="sec-hdr"><div class="sec-title">Overview</div><div class="sec-sub">'+now().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})+'</div></div>'
+    +'<div class="ov-stats">'
+    +'<div class="ov-stat"><div class="ov-stat-lbl">Today</div><div class="ov-stat-val teal">'+dP+'%</div><div class="ov-stat-sub">'+dDone+' of '+allD.length+' done</div></div>'
+    +'<div class="ov-stat"><div class="ov-stat-lbl">Streak</div><div class="ov-stat-val">'+streak+'</div><div class="ov-stat-sub">perfect days</div></div>'
+    +'<div class="ov-stat"><div class="ov-stat-lbl">This week</div><div class="ov-stat-val">'+wAvg+'%</div><div class="ov-stat-sub">avg completion</div></div>'
+    +'<div class="ov-stat"><div class="ov-stat-lbl">This month</div><div class="ov-stat-val">'+mAvg+'%</div><div class="ov-stat-sub">avg completion</div></div>'
+    +'</div>'
+    +'<div class="ov-pbar-wrap">'+pbarH(dP,dP+"% of today's tasks complete")+'</div>'
+    +'<div class="sched-hdr">Programme categories</div>'
+    +catCards+todayCard
+    +'<div style="height:8px"></div>';
+}
+
+function screenDaily(){
+  var sel=state.day||todayKey(),allD=allDaily();
+  var selParts=sel.split('-');
+  var selDate=new Date(parseInt(selParts[0]),parseInt(selParts[1])-1,parseInt(selParts[2]));
+  var selDow=selDate.getDay();
+  var todayW=null;for(var i=0;i<WEEKLY.length;i++)if(WEEKLY[i].day===DOW[selDow]){todayW=WEEKLY[i];break;}
+  var extras=todayW?todayW.tasks:[];
+  var totalCount=allD.length+extras.length;
+  var dDone=countDone(allD,'day_'+sel+'_');
+  var extrasDone=countDone(extras,'week_');
+  var dP=totalCount?pct(dDone+extrasDone,totalCount):0;
+  var days=[],pills='';
+  for(var i=6;i>=0;i--){var d=new Date();d.setDate(d.getDate()-i);days.push(d);}
+  for(var i=0;i<days.length;i++){
+    var d=days[i],k=dateKey(d),p=pct(countDone(allD,'day_'+k+'_'),allD.length);
+    var cls='day-pill'+(k===todayKey()?' today':'')+(k===sel?' selected':'')+(p===100?' complete':'');
+    pills+='<div class="'+cls+'" data-daykey="'+k+'"><div class="day-pill-n">'+d.toLocaleDateString('en-AU',{weekday:'short'})+'</div><div class="day-pill-p">'+p+'%</div></div>';
+  }
+  var sections='';
+  sections+=cardH('daily-'+DAILY[0].id,DAILY[0].label,DAILY[0].time,DAILY[0].tasks,'day_'+sel+'_',null,true);
+  if(extras.length)sections+=cardH('daily-extras','Also today \u2014 '+DOW[selDow],'From weekly schedule',extras,'week_',null,true);
+  sections+=cardH('daily-'+DAILY[1].id,DAILY[1].label,DAILY[1].time,DAILY[1].tasks,'day_'+sel+'_',null,true);
+  return '<div class="sec-hdr"><div class="sec-title">Daily tasks</div><div class="sec-sub">'+(dDone+extrasDone)+' of '+totalCount+' complete</div>'+pbarH(dP,dP+'% complete')+'</div>'
+    +'<div class="day-strip">'+pills+'</div>'+sections;
+}
+
+function screenWeekly(){
+  var allW=allWeekly(),wDone=countDone(allW,'week_'),wP=pct(wDone,allW.length);
+  var todayName=DOW[now().getDay()],cards='';
+  for(var i=0;i<WEEKLY.length;i++){
+    var d=WEEKLY[i],isToday=todayName===d.day,done=countDone(d.tasks,'week_');
+    cards+=cardH('weekly-'+d.day,d.day+(isToday?' \u2014 today':''),done+'/'+d.tasks.length+' done',d.tasks,'week_',null,isToday);
+  }
+  return '<div class="sec-hdr"><div class="sec-title">Weekly tasks</div><div class="sec-sub">'+wDone+' of '+allW.length+' complete this week</div>'+pbarH(wP,wP+'% complete')+'</div>'
+    +'<div style="height:10px"></div>'+cards;
+}
+
+function screenMaint(){
+  var allM=allMaint(),mDone=countDone(allM,'maint_'),mP=pct(mDone,allM.length),cards='';
+  for(var i=0;i<MAINT.length;i++){
+    var a=MAINT[i],tasks=[],freqs=[];
+    for(var j=0;j<a.tasks.length;j++){tasks.push({id:a.tasks[j].id,name:a.tasks[j].name,note:'',cat:'maintenance'});freqs.push(a.tasks[j].freq);}
+    cards+=cardH('maint-'+a.id,a.name,a.freq+' \u00b7 '+a.sched,tasks,'maint_',freqs,false);
+  }
+  return '<div class="sec-hdr"><div class="sec-title">Maintenance</div><div class="sec-sub">'+mDone+' of '+allM.length+' tasks logged</div>'+pbarH(mP,mP+'% logged')+'</div>'
+    +'<div style="height:10px"></div>'+cards;
+}
+
+function screenProg(){
+  var allD=allDaily(),allW=allWeekly(),allM=allMaint();
+  var streak=calcStreak(),wDone=countDone(allW,'week_'),mDone=countDone(allM,'maint_');
+  var last7=[],sum7=0,bars='';
+  for(var i=6;i>=0;i--){var d=new Date();d.setDate(d.getDate()-i);last7.push(d);}
+  for(var i=0;i<last7.length;i++){var k=dateKey(last7[i]);sum7+=pct(countDone(allD,'day_'+k+'_'),allD.length);}
+  var avg7=Math.round(sum7/7);
+  for(var i=0;i<last7.length;i++){
+    var k=dateKey(last7[i]),p=pct(countDone(allD,'day_'+k+'_'),allD.length),fc=p===100?NAVY:p>0?TEAL:'transparent';
+    bars+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
+      +'<div style="width:30px;font-size:11px;color:'+BLUE+';font-weight:600;flex-shrink:0">'+last7[i].toLocaleDateString('en-AU',{weekday:'short'})+'</div>'
+      +'<div style="flex:1;height:7px;background:'+CREAM+';border-radius:4px;overflow:hidden"><div style="height:100%;width:'+p+'%;background:'+fc+';border-radius:4px"></div></div>'
+      +'<div style="width:32px;font-size:11px;font-weight:700;text-align:right;color:'+(p>0?(p===100?NAVY:TEAL):'#ccc')+'">'+p+'%</div>'
+      +'</div>';
+  }
+
+  // Heatmap
+  var hmYear=now().getFullYear(),jan1=new Date(hmYear,0,1),jan1Dow=jan1.getDay();
+  var MNAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var monthLabels={};
+  for(var mo=0;mo<12;mo++){
+    var moStart=new Date(hmYear,mo,1),dayOfYear=Math.floor((moStart-jan1)/86400000);
+    var col=Math.floor((dayOfYear+jan1Dow)/7);
+    if(!monthLabels[col])monthLabels[col]=MNAMES[mo];
+  }
+  var mRow='';
+  for(var wi=0;wi<53;wi++){
+    mRow+='<div style="width:10px;flex-shrink:0;font-size:8px;overflow:visible;white-space:nowrap;line-height:1;color:'+BLUE+'">'+(monthLabels[wi]||'')+'</div>';
+  }
+  var HM_BG=['#E4DFDA','#b8d9e8','rgba(18,130,162,.55)','#1282A2','#011D4D'];
+  var dayRows='';
+  for(var di=0;di<7;di++){
+    var row='';
+    for(var wi=0;wi<53;wi++){
+      var dayIndex=wi*7+di-jan1Dow;
+      if(dayIndex<0||dayIndex>=365){
+        row+='<div style="width:10px;height:10px;flex-shrink:0"></div>';
+      } else {
+        var d2=new Date(hmYear,0,1+dayIndex),k=dateKey(d2),isFuture=d2>now();
+        var p2=isFuture?-1:pct(countDone(allD,'day_'+k+'_'),allD.length);
+        var lv=isFuture?0:p2===0?0:p2<30?1:p2<60?2:p2<100?3:4;
+        var ttl=isFuture?k:k+': '+p2+'%';
+        row+='<div style="width:10px;height:10px;flex-shrink:0;border-radius:2px;background:'+HM_BG[lv]+'" title="'+ttl+'"></div>';
+      }
+    }
+    dayRows+='<div style="display:flex;gap:2px;margin-bottom:2px">'+row+'</div>';
+  }
+
+  // Category bars
+  var catData={},catBars='';
+  for(var i=0;i<WEEKLY.length;i++)for(var j=0;j<WEEKLY[i].tasks.length;j++){
+    var t=WEEKLY[i].tasks[j];
+    if(!catData[t.cat])catData[t.cat]={total:0,done:0};
+    catData[t.cat].total++;
+    if(sGet('week_'+t.id)==='1')catData[t.cat].done++;
+  }
+  for(var cat in catData){
+    var cd=catData[cat],p=Math.round(cd.done/cd.total*100),s=CAT_STYLE[cat]||{bg:CREAM,tx:NAVY};
+    catBars+='<div style="margin-bottom:10px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">'
+      +'<span class="pill" style="background:'+s.bg+';color:'+s.tx+'">'+(CL[cat]||cat)+'</span>'
+      +'<span style="font-size:11px;color:'+BLUE+';font-weight:600">'+cd.done+'/'+cd.total+'</span></div>'
+      +'<div style="height:5px;background:'+CREAM+';border-radius:3px;overflow:hidden">'
+      +'<div style="height:100%;width:'+p+'%;background:'+s.tx+';border-radius:3px;opacity:.7"></div></div></div>';
+  }
+
+  // Airtable panel
+  var atKey=sGet('at_api_key'),atBase=sGet('at_base_id'),atLast=sGet('at_last_sync');
+  var atPanel='<div class="at-panel">'
+    +'<div class="at-panel-hdr"><div class="at-panel-title">Airtable sync</div>'
+    +'<div class="at-panel-sub">Send your tracker data directly to Airtable</div></div>'
+    +'<div class="at-field-row"><div class="at-field-lbl">Personal Access Token</div>'
+    +'<input id="at-api-key" class="at-input" type="password" placeholder="patXXXXXXXXXXXXXX" value="'+atKey+'"></div>'
+    +'<div class="at-field-row"><div class="at-field-lbl">Base ID</div>'
+    +'<input id="at-base-id" class="at-input" type="text" placeholder="appXXXXXXXXXXXXXX" value="'+atBase+'"></div>'
+    +'<div class="at-btn-row">'
+    +'<button class="at-btn primary" id="at-sync-btn">Sync now</button>'
+    +'<button class="at-btn secondary" id="at-save-btn">Save credentials</button>'
+    +'</div>'
+    +'<div id="at-status" class="at-status"></div>'
+    +'<div id="at-last" class="at-last">'+(atLast?'Last synced: '+atLast:'')+'</div>'
+    +'<div class="at-steps">'
+    +'<div style="font-size:10px;font-weight:700;color:var(--cream-dk);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Setup guide</div>'
+    +'<div class="at-step"><div class="at-step-num">1</div><div class="at-step-txt">In Airtable, create a new base called <strong>Home Care Tracker</strong>. Three tables are created automatically on first sync.</div></div>'
+    +'<div class="at-step"><div class="at-step-num">2</div><div class="at-step-txt">Go to <strong>airtable.com/create/tokens</strong>, create a token with <strong>data.records:read</strong> and <strong>data.records:write</strong> scopes on your base. Paste it above.</div></div>'
+    +'<div class="at-step"><div class="at-step-num">3</div><div class="at-step-txt">Your <strong>Base ID</strong> starts with <strong>app</strong> and is in your Airtable URL. Paste it above.</div></div>'
+    +'<div class="at-step"><div class="at-step-num">4</div><div class="at-step-txt">Tap <strong>Save credentials</strong> then <strong>Sync now</strong>. Sync daily after completing your tasks.</div></div>'
+    +'</div></div>';
+
+  return '<div class="sec-hdr"><div class="sec-title">Progress</div><div class="sec-sub">Your home care at a glance</div></div>'
+    +'<div class="stat-grid">'
+    +'<div class="stat-c"><div class="stat-lbl">Current streak</div><div class="stat-v" style="color:'+NAVY+'">'+streak+' days</div></div>'
+    +'<div class="stat-c"><div class="stat-lbl">7-day average</div><div class="stat-v" style="color:'+TEAL+'">'+avg7+'%</div></div>'
+    +'<div class="stat-c"><div class="stat-lbl">Weekly tasks</div><div class="stat-v" style="color:'+BLUE+'">'+wDone+'/'+allW.length+'</div></div>'
+    +'<div class="stat-c"><div class="stat-lbl">Maintenance</div><div class="stat-v" style="color:'+BROWN+'">'+mDone+'/'+allM.length+'</div></div>'
+    +'</div>'
+    +'<div style="padding:14px 12px 4px"><div class="sub-hdr">Last 7 days</div>'
+    +'<div class="card" style="margin:0;padding:14px 16px">'+bars+'</div></div>'
+    +'<div style="padding:14px 12px 4px"><div class="sub-hdr">'+hmYear+' habit heatmap</div>'
+    +'<div class="card" style="margin:0;padding:14px 16px">'
+    +'<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">'
+    +'<div style="display:flex;gap:2px;margin-bottom:4px;min-width:max-content">'+mRow+'</div>'
+    +'<div style="min-width:max-content">'+dayRows+'</div></div>'
+    +'<div style="display:flex;align-items:center;gap:5px;margin-top:10px">'
+    +'<span style="font-size:10px;color:'+BLUE+'">Less</span>'
+    +'<div style="width:10px;height:10px;border-radius:2px;background:#E4DFDA;flex-shrink:0"></div>'
+    +'<div style="width:10px;height:10px;border-radius:2px;background:#b8d9e8;flex-shrink:0"></div>'
+    +'<div style="width:10px;height:10px;border-radius:2px;background:rgba(18,130,162,.55);flex-shrink:0"></div>'
+    +'<div style="width:10px;height:10px;border-radius:2px;background:#1282A2;flex-shrink:0"></div>'
+    +'<div style="width:10px;height:10px;border-radius:2px;background:#011D4D;flex-shrink:0"></div>'
+    +'<span style="font-size:10px;color:'+BLUE+'">More</span>'
+    +'</div></div></div>'
+    +'<div style="padding:14px 12px 4px"><div class="sub-hdr">Weekly tasks by category</div>'
+    +'<div class="card" style="margin:0;padding:14px 16px">'+catBars+'</div></div>'
+    +'<div style="padding:14px 12px 4px"><div class="sub-hdr">Airtable sync</div>'+atPanel+'</div>'
+    +'<div style="height:8px"></div>';
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+var TABS=[
+  {id:'dash',label:'Home',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>'},
+  {id:'daily',label:'Daily',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><polyline points="12,7 12,12 15,15"/></svg>'},
+  {id:'weekly',label:'Weekly',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'},
+  {id:'maint',label:'Maintain',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>'},
+  {id:'prog',label:'Progress',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>'}
+];
+
+var state={tab:'dash',day:todayKey()};
+
+function renderNav(){
+  var nav=document.getElementById('bottom-nav'),html='';
+  for(var i=0;i<TABS.length;i++){
+    var t=TABS[i],active=state.tab===t.id;
+    html+='<button class="nav-btn'+(active?' active':'')+'" data-tab="'+t.id+'">'+t.icon+t.label+(active?'<div class="nav-dot"></div>':'')+'</button>';
+  }
+  nav.innerHTML=html;
+}
+
+function render(){
+  // Check for auto-resets on every render
+  checkWeeklyReset();
+  checkMaintReset();
+  var sc=document.getElementById('screen');
+  var fn={dash:screenDash,daily:screenDaily,weekly:screenWeekly,maint:screenMaint,prog:screenProg};
+  sc.innerHTML=(fn[state.tab]||screenDash)();
+  sc.scrollTop=0;
+  renderNav();
+
+  // Wire up Airtable buttons
+  var btnSync=document.getElementById('at-sync-btn');
+  var btnSave=document.getElementById('at-save-btn');
+  if(btnSync)btnSync.onclick=doAtSync;
+  if(btnSave)btnSave.onclick=saveAtCreds;
+
+  // Click delegation
+  sc.onclick=function(e){
+    var row=e.target.closest('.task-row');
+    if(row&&row.dataset.key){sToggle(row.dataset.key);render();return;}
+    var hdr=e.target.closest('.card-hdr');
+    if(hdr&&hdr.dataset.card){
+      var body=document.getElementById('cb-'+hdr.dataset.card),chev=hdr.querySelector('.chev');
+      if(body){var open=body.style.display!=='none';body.style.display=open?'none':'block';if(chev)chev.classList.toggle('open',!open);}
+      return;
+    }
+    var catHdr=e.target.closest('.cat-card-hdr');
+    if(catHdr&&catHdr.dataset.cat!==undefined){
+      var idx=catHdr.dataset.cat,body=document.getElementById('catbody-'+idx),chev=document.getElementById('cchev-'+idx);
+      if(body){var open=body.classList.contains('open');body.classList.toggle('open',!open);if(chev)chev.classList.toggle('open',!open);}
+      return;
+    }
+    var dp=e.target.closest('.day-pill');
+    if(dp&&dp.dataset.daykey){state.day=dp.dataset.daykey;render();}
+  };
+
+  document.getElementById('bottom-nav').onclick=function(e){
+    var btn=e.target.closest('.nav-btn');
+    if(btn&&btn.dataset.tab){state.tab=btn.dataset.tab;render();}
+  };
+}
+
+render();
+</script>
+</body>
+</html>
